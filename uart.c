@@ -12,7 +12,10 @@
 #include <stdint.h>
 
 //variables
-uint8_t data;
+uint8_t data = 0;
+uint8_t flag1 = 0;
+
+uint8_t hour;
 uint8_t demoRingBuffer[RING_BUFFER_SIZE];
 volatile uint16_t txIndex; /* Index of the data to send out. */
 volatile uint16_t rxIndex; /* Index of the memory to save new arrived data. */
@@ -47,7 +50,8 @@ void uart0_config(void)
 
 }
 
-//ISR para la UART
+
+//ISR para la UART 0
 void UART0_RX_TX_IRQHandler(void)
 {
 
@@ -55,33 +59,40 @@ void UART0_RX_TX_IRQHandler(void)
 	    if ((kUART_RxDataRegFullFlag | kUART_RxOverrunFlag) & UART_GetStatusFlags(UART0))
 	    {
 	        data = UART_ReadByte(UART0);
+//	        flag1 = true;
 
 	        /* If ring buffer is not full, add data to ring buffer. */
 	        if (((rxIndex + 1) % RING_BUFFER_SIZE) != txIndex)
 	        {
 	            demoRingBuffer[rxIndex] = data;
 
+
 	            rxIndex++;
 	            rxIndex %= RING_BUFFER_SIZE;
 	        }
+	        flag1 = true;
 	    }
 	    SDK_ISR_EXIT_BARRIER;
 }
 
+
 void sent_data(void)
 {
 	/* Send data only when UART TX register is empty and ring buffer has data to send out. */
-	        while ((kUART_TxDataRegEmptyFlag & UART_GetStatusFlags(UART0)) && (rxIndex != txIndex))
+	        //while ((kUART_TxDataRegEmptyFlag & UART_GetStatusFlags(UART0)) && (rxIndex != txIndex))
+			if(flag1)
 	        {
 	            UART_WriteByte(UART0, demoRingBuffer[txIndex]);
+//	            UART_WriteByte(UART0, data);
 
-	            data = *(demoRingBuffer + txIndex);
-
+	            //data = *demoRingBuffer + txIndex;
+	            flag1 = false;
 	            txIndex++;
 	            txIndex %= RING_BUFFER_SIZE;
 	        }
 
 }
+
 
 uint16_t get_txIndex()
 {
@@ -109,5 +120,40 @@ void set_data()
 	data = false;
 }
 
+uint8_t get_hour()
+{
+	return hour;
+}
+void set_hour()
+{
+	hour = false;
+}
 
 
+uint8_t get_flag1()
+{
+	return flag1;
+}
+void set_flag1()
+{
+	flag1 = true;
+}
+void set_flag2()
+{
+	flag1 = false;
+}
+
+uint8_t get_ring_buffer(uint8_t index)
+{
+	return demoRingBuffer[index];
+}
+
+void set_ring_buffer(uint8_t index)
+{
+	demoRingBuffer[index] = 0;
+}
+
+void clear_buffer(void)
+{
+	UART_ClearStatusFlags(UART0, flag1);
+}
